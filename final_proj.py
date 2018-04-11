@@ -138,12 +138,13 @@ def get_movies(genre):
                     if titles == "Rating:":
                         movie_rated = litag.find('div', {'class': 'meta-value'}).text
                         if len(movie_rated) >1:
-                            movie_rating = movie_rated[:2]
+                            movie_ratings = movie_rated.split() #---was [;2]
+                            movie_rating = movie_ratings[0]
                             # print(movie_rating)
                     elif titles == "Genre:":
                         movie_genres = litag.find('div', {'class': 'meta-value'}).text.replace(' ', '').replace('\n', '').split(',')
                         movie_genre = movie_genres[0]
-                        # print(movie_genre[0])
+
                     elif titles == "Directed By:":
                         movie_directors = litag.find('div', {'class': 'meta-value'}).text.strip().split(",")
                         movie_director = movie_directors[0]
@@ -155,7 +156,7 @@ def get_movies(genre):
                         movie_runtime = runtime[0]
 
                     elif titles == "Studio:":
-                        movie_studio = litag.find('div', {'class': 'meta-value'}).text.strip()
+                        movie_studio = litag.find('div', {'class': 'meta-value'}).text.strip().replace(" ", "-")
                         # print(movie_studio)
 
         each_movie_instance = Movie(name= movie_name, rating= movie_rating, genre= movie_genre, director= movie_director, release_year=year, runtime=movie_runtime, studio=movie_studio, reviews=num_rev)
@@ -168,18 +169,22 @@ def get_movies(genre):
 
 get_movies("romance")
 def create_csv():
+
     file_name = open("Movies.csv", "w")
-    file_name.write("Movie, Genre, Rating, MovieLength, Director, ReleaseYear, Studio, Reviews\n")
+    file_name.write("Movie, MovieId, Genre, Rating, MovieLength, Director, ReleaseYear, Studio, Reviews\n")
+    counter = 1000
     for movies in movie_list:
-        Movie = movies.name
-        Genre = movies.genre
-        Rating = movies.rating
-        MovieLength = movies.runtime
-        Director = movies.director
-        ReleaseYear = movies.release_year
-        Studio = movies.studio
-        Reviews = movies.reviews
-        file_name.write("{}, {}, {}, {}, {}, {}, {}, {}\n".format(Movie,Genre,Rating,MovieLength,Director,ReleaseYear,Studio,Reviews))
+      counter += 1
+      MovieId = counter
+      Movie = movies.name
+      Genre = movies.genre
+      Rating = movies.rating
+      MovieLength = movies.runtime
+      Director = movies.director
+      ReleaseYear = movies.release_year
+      Studio = movies.studio
+      Reviews = movies.reviews
+      file_name.write("{}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(Movie,MovieId,Genre,Rating,MovieLength,Director,ReleaseYear,Studio,Reviews))
     file_name.close()
 
 create_csv()
@@ -203,7 +208,7 @@ def init_db(db_name):
           'MovieName' TEXT NOT NULL,
           'ReleaseYear' INTEGER,
           'MovieId' INTEGER,
-          'NumberReviews' TEXT NOT NULL,
+          'NumberReviews' REAL,
           FOREIGN KEY (MovieId) REFERENCES Movies(Id)
 
       );
@@ -224,8 +229,8 @@ def init_db(db_name):
       CREATE TABLE 'Movies' (
           'Id' INTEGER PRIMARY KEY AUTOINCREMENT,
           'MovieName' TEXT NOT NULL,
-          'Genre' TEXT,
-          'Rating' TEXT,
+          'Genre' TEXT NOT NULL,
+          'Rating' TEXT NOT NULL,
           'MovieLength' REAL,
           'Director' TEXT,
           'Studio' TEXT NOT NULL
@@ -238,31 +243,12 @@ def init_db(db_name):
   conn.close()
 
 init_db(DBNAME)
-# def insert_row_csv_extra(csv_list):
-#     movie_dict = {}
-#     movie_id  = 1
-#     movies_csv= open(MOVIESCSV)
-#     csvReader = csv.reader(movies_csv)
-#     csv_list = list(csvReader)
-#     del(csv_list[0])
-#     for rows in csv_list:
-#       movie_dict[rows[0]] = movie_id
-#       movie_id +=1
-#       print(movie_dict)
-    # for keys in movie_dict:
-
-
-
-    # print(counts)
-# my_dict[row[0]] = id_
-#         id_ +=1
-# insert_row_csv_extra(MOVIESCSV)
 
 def insert_csv_data(csv_file):
     conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
     for row in csv_file:
-        insertion = (row[0], row[5], row[7])
+        insertion = (row[0], row[6], row[8])
         statement = 'INSERT INTO "Critics" '
         statement += 'VALUES (NULL, ?, ?, NULL, ?) '
         cur.execute(statement, insertion)
@@ -272,11 +258,11 @@ def insert_csv_data2(csv_file):
     conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
     my_dict = {}
-    id_ = 1000
+    id_ = 1001
     for row in csv_file:
-        insertion = (row[0], row[1], row[2], row[3], row[4], row[6])
+        insertion = (row[1], row[0], row[2], row[3], row[4], row[5], row[7])
         statement = 'INSERT INTO "Movies" '
-        statement += 'VALUES (NULL, ?, ?, ?, ?, ?, ?) '
+        statement += 'VALUES (?, ?, ?, ?, ?, ?, ?) '
         my_dict[row[0]] = id_
         id_ +=1
         cur.execute(statement, insertion)
@@ -285,7 +271,7 @@ def insert_csv_data2(csv_file):
     for keys in my_dict:
       try:
         cur.execute('UPDATE Critics SET MovieId =' + str(my_dict[keys]) + ' WHERE MovieName =' + '"' + keys + '"')
-        cur.execute('UPDATE Movies SET Id =' + str(my_dict[keys]) + ' WHERE MovieName =' + '"' + keys + '"')
+
       except:
         pass
     conn.commit()
@@ -305,6 +291,200 @@ csv_list = list(csvReader)
 del(csv_list[0])
 insert_csv_data2(csv_list)
 
+
+print("----------TABLES HERE----------")
+def movies_command(command):
+    conn = sqlite3.connect(DBNAME)
+    cur = conn.cursor()
+    statement1 = 'SELECT Movies.MovieName, Movies.Studio, Movies.Genre, c.ReleaseYear '
+    statement2 = 'FROM Movies '
+    join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+    join_statement2 = ''
+    filming_studio = ''
+    year = ''
+    order_by = 'ORDER BY Movies.MovieLength '
+    top_bottom = 'DESC ' #-- changed this from desc
+    limit = 'LIMIT 10'
+
+
+    response = command.split()
+    print(response)
+    for words in response:
+      if "filming_studio" in words:
+        split = words.split("=")
+        print(split)
+        studio_name = split[1]
+        join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+        filming_studio = 'WHERE Movies.Studio = " ' + studio_name + '" '
+        print(studio_name)
+
+      if "year" in words:
+        split = words.split("=")
+        release_year = split[1]
+        join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+        year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
+        print(release_year)
+
+      if "review" in words:
+        order_by = 'ORDER BY c.NumberReviews '
+
+      if "ratings" in words:
+        order_by = 'ORDER BY Movies.MovieLength '
+
+      if "top" in words:
+        split = words.split("=")
+        limit_no = split[1]
+        top_bottom = 'DESC '
+        limit = 'LIMIT "' + limit_no + '" '
+
+      if "bottom" in words:
+        split = words.split("=")
+        limit_no = split[1]
+        top_bottom = ''
+        limit = 'LIMIT "' + limit_no + '" '
+
+
+    cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
+    # print(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
+    beautiful_table = PrettyTable()
+    beautiful_table.field_names = ["MovieName", "Studio", "Genre", "ReleaseYear"]
+    for row in cur:
+        beautiful_table.add_row(row)
+    print(beautiful_table)
+
+
+def genres_command(command):
+  conn = sqlite3.connect(DBNAME)
+  cur = conn.cursor()
+  statement1 = 'SELECT Movies.MovieName, Movies.Genre, c.ReleaseYear '
+  statement2 = 'FROM Movies '
+  join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+  genre = ''
+  year = ''
+  group_by = 'GROUP BY Movies.Genre '
+  order_by = 'ORDER BY Movies.MovieLength '
+  top_bottom = 'DESC ' #-- changed this from desc
+  limit = 'LIMIT 10'
+
+  response = command.split()
+  print(response)
+  for words in response:
+    if "category" in words:
+      split_info = response[1]
+      split_name = split_info.split("=")
+      genre_name = split_name[1]
+      genre = 'WHERE Movies.Genre = " ' + genre_name + '" '
+      group_by = ''
+
+
+    if "number_reviews" in words:
+        statement1 = 'SELECT Movies.MovieName, Movies.Genre, ROUND(AVG(c.NumberReviews), 1) '
+        order_by = 'ORDER BY AVG(c.NumberReviews) '
+
+
+    if "ratings" in words:
+      split = words.split("=")
+      rating_movie= split[1]
+      ratings = 'WHERE Movies.Rating = " ' + rating_movie + '" '
+      limit = ''
+      order_by = 'ORDER BY c.NumberReviews ' #this line only original
+
+    if "top" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = 'DESC '
+      limit = 'LIMIT "' + limit_no + '" '
+
+    if "bottom" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = ''
+      limit = 'LIMIT "' + limit_no + '" '
+
+
+  cur.execute(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
+  # print(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
+  beautiful_table = PrettyTable()
+  beautiful_table.field_names = ["MovieName", "Genre", "Aggregate/Value"]
+  for row in cur:
+      beautiful_table.add_row(row)
+  print(beautiful_table)
+
+def studio_command(command):
+  conn = sqlite3.connect(DBNAME)
+  cur = conn.cursor()
+  statement1 = 'SELECT Movies.Studio, c.ReleaseYear, Movies.Rating '
+  statement2 = 'FROM Movies '
+  join_statement1 = 'JOIN Critics as c ON c.MovieId = Movies.Id '
+  genre = ''
+  year = ''
+  ratings = ''
+  group_by = ''
+  having = ''
+  order_by = 'ORDER BY c.ReleaseYear '
+  top_bottom = 'DESC '
+  limit = 'LIMIT 30'
+
+
+  response = command.split()
+  print(response)
+  for words in response: #how many movies were in top 100 in a specific year
+    if "year" in words:
+      split = words.split("=")
+      release_year = split[1]
+      year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
+
+    if "ratings" in words:
+      statement1 = 'SELECT DISTINCT Movies.Studio, c.ReleaseYear, Movies.Rating '
+      split = words.split("=")
+      rating_movie= split[1]
+      ratings = 'WHERE Movies.Rating = " ' + rating_movie + '" '
+      limit = ''
+
+    if "genre" in words:
+      split = words.split("=")
+      genre_name = split[1]
+      genre = 'WHERE Movies.Genre = " ' + genre_name + '" '
+
+    if "number_reviews" in words:
+      order_by = 'ORDER BY COUNT(c.NumberReviews) '
+      group_by = 'GROUP BY Movies.Studio '
+
+    if "top" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = 'DESC '
+      limit = 'LIMIT "' + limit_no + '" '
+
+    if "bottom" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = ''
+      limit = 'LIMIT "' + limit_no + '" '
+
+
+
+    # if "" in words:
+
+
+
+      # statement1 = 'SELECT Movies.Studio, c.ReleaseYear '
+
+
+
+
+
+  cur.execute(statement1 + statement2 + join_statement1 + genre + year + ratings + group_by + having + order_by + top_bottom + limit)
+  # print(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
+  beautiful_table = PrettyTable()
+  beautiful_table.field_names = ["MovieStudio", "ReleaseYear", "Rating"]
+  for row in cur:
+      beautiful_table.add_row(row)
+  print(beautiful_table)
+#
+# movies_command("movies ratings bottom=10") #took top=10 out of this
+genres_command("genres ratings=NR bottom=5")
+# studio_command("studio ratings=PG-13 number_reviews")
 
 
 #romance -- cached
