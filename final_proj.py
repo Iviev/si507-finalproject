@@ -3,6 +3,8 @@ import sqlite3
 import json
 from bs4 import BeautifulSoup
 import plotly.plotly as py
+import plotly.graph_objs as go
+from plotly.graph_objs import *
 import csv
 from prettytable import PrettyTable
 
@@ -167,7 +169,7 @@ def get_movies(genre):
 
     return movie_list
 
-get_movies("romance")
+get_movies("horror")
 def create_csv():
 
     file_name = open("Movies.csv", "w")
@@ -294,69 +296,99 @@ insert_csv_data2(csv_list)
 
 print("----------TABLES HERE----------")
 def movies_command(command):
-    conn = sqlite3.connect(DBNAME)
-    cur = conn.cursor()
-    statement1 = 'SELECT Movies.MovieName, Movies.Studio, Movies.Genre, c.ReleaseYear '
-    statement2 = 'FROM Movies '
-    join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
-    join_statement2 = ''
-    filming_studio = ''
-    year = ''
-    order_by = 'ORDER BY Movies.MovieLength '
-    top_bottom = 'DESC ' #-- changed this from desc
-    limit = 'LIMIT 10'
+  global result_value
+  global director_list
+  global movielength_list
+  global moviereview_list
+  global movie_rating_list
+  movie_rating_list  = []
+  # director_list = []
+  movielength_list = []
+  moviereview_list = []
+  conn = sqlite3.connect(DBNAME)
+  cur = conn.cursor()
+  statement1 = 'SELECT Movies.MovieName, Movies.Studio, Movies.Genre, c.ReleaseYear, Movies.MovieLength, c.NumberReviews '
+  statement2 = 'FROM Movies '
+  join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+  join_statement2 = ''
+  filming_studio = ''
+  year = ''
+  group_by = ''
+  order_by = 'ORDER BY Movies.MovieLength '
+  top_bottom = 'DESC ' #-- changed this from desc
+  limit = 'LIMIT 10'
 
 
-    response = command.split()
-    print(response)
-    for words in response:
-      if "filming_studio" in words:
-        split = words.split("=")
-        print(split)
-        studio_name = split[1]
-        join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
-        filming_studio = 'WHERE Movies.Studio = " ' + studio_name + '" '
-        print(studio_name)
+  response = command.split()
+  for words in response:
+    if "filming_studio" in words:
+      split = words.split("=")
+      print(split)
+      studio_name = split[1]
+      join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+      filming_studio = 'WHERE Movies.Studio = " ' + studio_name + '" '
+      # print(studio_name)
 
-      if "year" in words:
-        split = words.split("=")
-        release_year = split[1]
-        join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
-        year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
-        print(release_year)
+    if "year" in words:
+      split = words.split("=")
+      release_year = split[1]
+      join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+      year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
+      # print(release_year)
 
-      if "review" in words:
-        order_by = 'ORDER BY c.NumberReviews '
+    if "ratings" in words: #take review out
+      print("hey there")
+      statement1 = 'SELECT Movies.MovieName, Movies.Rating, COUNT(*), c.ReleaseYear, Movies.MovieLength, c.NumberReviews '
+      group_by = 'GROUP BY Movies.Rating '
+      limit = ''
+    #create an if rating that that pulls up ratings and a count of movies in that genre---us db browser first
 
-      if "ratings" in words:
-        order_by = 'ORDER BY Movies.MovieLength '
+    if "top" in words:
+      print("yh") #not priting out 30
+      split = words.split("=")
+      print(split)
+      limit_no = split[1]
+      print(limit_no)
+      top_bottom = 'DESC '
+      limit = 'LIMIT "' + limit_no + '" '
 
-      if "top" in words:
-        split = words.split("=")
-        limit_no = split[1]
-        top_bottom = 'DESC '
-        limit = 'LIMIT "' + limit_no + '" '
-
-      if "bottom" in words:
-        split = words.split("=")
-        limit_no = split[1]
-        top_bottom = ''
-        limit = 'LIMIT "' + limit_no + '" '
+    if "bottom" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = ''
+      limit = 'LIMIT "' + limit_no + '" '
 
 
-    cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
-    # print(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
-    beautiful_table = PrettyTable()
-    beautiful_table.field_names = ["MovieName", "Studio", "Genre", "ReleaseYear"]
-    for row in cur:
-        beautiful_table.add_row(row)
-    print(beautiful_table)
+  cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + group_by + order_by + top_bottom + limit)
+  # print(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
+  beautiful_table = PrettyTable()
+  beautiful_table.field_names = ["MovieName", "Studio/Rating", "Genre/Count", "ReleaseYear", "MovieLength", "NumberReviews"]
+  for row in cur:
+      beautiful_table.add_row(row)
+      director_row = row[2]
+      # director_list.append(director_row)
+      movielength_row = row[4]
+      moviereview_row = row[5]
+      movielength_list.append(movielength_row)
+      moviereview_list.append(moviereview_row)
+      movie_rating_row = row[1]
+      movie_rating_list.append(movie_rating_row)
+
+  print(beautiful_table)
+  print(movie_rating_list)
+  result = cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + group_by + order_by + top_bottom + limit)
+  # result_value = result.fetchall()
+  return result.fetchall()
 
 
 def genres_command(command):
+  global plot_genre_list
+  global plot_genre_reviews
+  plot_genre_list = []
+  plot_genre_reviews = []
   conn = sqlite3.connect(DBNAME)
   cur = conn.cursor()
-  statement1 = 'SELECT Movies.MovieName, Movies.Genre, c.ReleaseYear '
+  statement1 = 'SELECT Movies.MovieName, Movies.Genre, c.ReleaseYear, ROUND(AVG(c.NumberReviews), 1) '
   statement2 = 'FROM Movies '
   join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
   genre = ''
@@ -364,10 +396,9 @@ def genres_command(command):
   group_by = 'GROUP BY Movies.Genre '
   order_by = 'ORDER BY Movies.MovieLength '
   top_bottom = 'DESC ' #-- changed this from desc
-  limit = 'LIMIT 10'
+  limit = 'LIMIT 20'
 
   response = command.split()
-  print(response)
   for words in response:
     if "category" in words:
       split_info = response[1]
@@ -378,9 +409,8 @@ def genres_command(command):
 
 
     if "number_reviews" in words:
-        statement1 = 'SELECT Movies.MovieName, Movies.Genre, ROUND(AVG(c.NumberReviews), 1) '
+        statement1 = 'SELECT Movies.MovieName, Movies.Genre, c.ReleaseYear, ROUND(AVG(c.NumberReviews), 1) '
         order_by = 'ORDER BY AVG(c.NumberReviews) '
-
 
     if "ratings" in words:
       split = words.split("=")
@@ -405,15 +435,27 @@ def genres_command(command):
   cur.execute(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
   # print(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
   beautiful_table = PrettyTable()
-  beautiful_table.field_names = ["MovieName", "Genre", "Aggregate/Value"]
+  beautiful_table.field_names = ["MovieName", "Genre", "Year", "AggregateValue"]
   for row in cur:
-      beautiful_table.add_row(row)
+    genre_list_row = row[1]
+    plot_genre_list.append(genre_list_row)
+    genre_review_row = row[3]
+    plot_genre_reviews.append(genre_review_row)
+    beautiful_table.add_row(row)
   print(beautiful_table)
+  print(plot_genre_list)
+  print(plot_genre_reviews)
 
 def studio_command(command):
+  global plot_studio_list
+  global plot_count_review
+  global plot_average_review
+  plot_studio_list = []
+  plot_count_review = []
+  plot_average_review = []
   conn = sqlite3.connect(DBNAME)
   cur = conn.cursor()
-  statement1 = 'SELECT Movies.Studio, c.ReleaseYear, Movies.Rating '
+  statement1 = 'SELECT Movies.Studio, c.ReleaseYear, Movies.Rating, COUNT(c.NumberReviews), ROUND(AVG(c.NumberReviews)) '
   statement2 = 'FROM Movies '
   join_statement1 = 'JOIN Critics as c ON c.MovieId = Movies.Id '
   genre = ''
@@ -427,7 +469,6 @@ def studio_command(command):
 
 
   response = command.split()
-  print(response)
   for words in response: #how many movies were in top 100 in a specific year
     if "year" in words:
       split = words.split("=")
@@ -435,7 +476,7 @@ def studio_command(command):
       year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
 
     if "ratings" in words:
-      statement1 = 'SELECT DISTINCT Movies.Studio, c.ReleaseYear, Movies.Rating '
+      statement1 = 'SELECT DISTINCT Movies.Studio, c.ReleaseYear, Movies.Rating, COUNT(c.NumberReviews), ROUND(AVG(c.NumberReviews)) '
       split = words.split("=")
       rating_movie= split[1]
       ratings = 'WHERE Movies.Rating = " ' + rating_movie + '" '
@@ -446,8 +487,9 @@ def studio_command(command):
       genre_name = split[1]
       genre = 'WHERE Movies.Genre = " ' + genre_name + '" '
 
+
     if "number_reviews" in words:
-      order_by = 'ORDER BY COUNT(c.NumberReviews) '
+      order_by = 'ORDER BY COUNT(c.ReleaseYear) '
       group_by = 'GROUP BY Movies.Studio '
 
     if "top" in words:
@@ -462,35 +504,254 @@ def studio_command(command):
       top_bottom = ''
       limit = 'LIMIT "' + limit_no + '" '
 
-
-
-    # if "" in words:
-
-
-
-      # statement1 = 'SELECT Movies.Studio, c.ReleaseYear '
-
-
-
-
-
   cur.execute(statement1 + statement2 + join_statement1 + genre + year + ratings + group_by + having + order_by + top_bottom + limit)
   # print(statement1 + statement2 + join_statement1 + genre + year + group_by + order_by + top_bottom + limit)
   beautiful_table = PrettyTable()
-  beautiful_table.field_names = ["MovieStudio", "ReleaseYear", "Rating"]
+  beautiful_table.field_names = ["MovieStudio", "ReleaseYear", "Rating", "Count", "Average"]
   for row in cur:
-      beautiful_table.add_row(row)
+    studio_list_row = row[0]
+    plot_studio_list.append(studio_list_row)
+    count_review_row = row[3]
+    plot_count_review.append(count_review_row)
+    average_review_row = row[4]
+    plot_average_review.append(average_review_row)
+    beautiful_table.add_row(row)
   print(beautiful_table)
+
+def compare_command(command):
+  global director_list
+  global director_movielength_list
+  global director_moviereview_list
+  director_list = []
+  director_movielength_list = []
+  director_moviereview_list = []
+  conn = sqlite3.connect(DBNAME)
+  cur = conn.cursor()
+  statement1 =   statement1 = 'SELECT Movies.MovieName, Movies.Studio, Movies.Director, c.ReleaseYear, Movies.MovieLength, c.NumberReviews '
+  statement2 = 'FROM Movies '
+  join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
+  join_statement2 = ''
+  filming_studio = ''
+  year = ''
+  group_by = ''
+  order_by = 'ORDER BY Movies.MovieLength '
+  top_bottom = 'DESC ' #-- changed this from desc
+  limit = 'LIMIT 10'
+
+
+  response = command.split()
+  for words in response:
+    if "directors" in words:
+      # print("here")
+      order_by = 'ORDER BY c.ReleaseYear '
+
+    if "top" in words:
+      print("yh") #not priting out 30
+      split = words.split("=")
+      print(split)
+      limit_no = split[1]
+      print(limit_no)
+      top_bottom = 'DESC '
+      limit = 'LIMIT "' + limit_no + '" '
+
+    if "bottom" in words:
+      split = words.split("=")
+      limit_no = split[1]
+      top_bottom = ''
+      limit = 'LIMIT "' + limit_no + '" '
+
+
+  cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + group_by + order_by + top_bottom + limit)
+  # print(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + order_by + top_bottom + limit)
+  beautiful_table = PrettyTable()
+  beautiful_table.field_names = ["MovieName", "Studio", "Director", "ReleaseYear", "MovieLength", "NumberReviews"]
+  for row in cur:
+    beautiful_table.add_row(row)
+    director_row = row[2]
+    director_list.append(director_row)
+    director_movielength_row = row[4]
+    director_moviereview_row = row[5]
+    director_movielength_list.append(director_movielength_row)
+    director_moviereview_list.append(director_moviereview_row)
+  print(beautiful_table)
+
+
+
 #
-# movies_command("movies ratings bottom=10") #took top=10 out of this
-genres_command("genres ratings=NR bottom=5")
-# studio_command("studio ratings=PG-13 number_reviews")
+movies_command("movies ratings") #plan to visualize all movies according to movielenght via scatter with a color dimension. using movies top 10, also bubble chart in movies
+genres_command("genres number_reviews top=20") #creating lists from here to visualize genres and their average number of reviews in a pie chart using "genres number_reviews top=5"
+studio_command("studio number_reviews top=20") #rotated barr chart labels(x axis has each studio, then plots count and average on y axis using"studio number_reviews")
+compare_command("compare directors top=20")
+#basic plot dot movie directors
+#label line with annotations
 
 
-#romance -- cached
-#horror -- cached
-#animation -- cached
-#drama -- cached
-#comedy -- cached
-#documentary -- cached
-#television -- cached
+
+
+def process_command(command):
+  conn = sqlite3.connect(DBNAME)
+  cur = conn.cursor()
+  if command.split()[0] == "movies":
+      return movies_command(command)
+
+  if command.split()[0] == "genres":
+      return genres_command(command)
+
+  if command.split()[0] == "studio":
+      return studio_command(command)
+
+
+# Questions to ASK:
+# WHY IS MY MOVIES COMMAND NOT PRINITNG OUT TOP 30
+# HOW TO INCORPORATE INTERACTIVE PROMPT
+
+
+
+
+print("-----------------------------------PLOTLY FUNCTIONS---------------------------------------")
+
+def get_pie_chart_genre():
+  labels = plot_genre_list
+  values = plot_genre_reviews
+
+  trace = go.Pie(labels=labels, values=values)
+
+  py.plot([trace], filename='Pie_Chart_genre')
+
+
+get_pie_chart_genre()
+
+def get_rotated_barchart_studios():
+
+  trace0 = go.Bar(
+    x= plot_studio_list,
+    y= plot_count_review,
+    name='Count reviews',
+    marker=dict(
+        color='rgb(49,130,189)' #was 49, 130, 189
+    )
+  )
+  trace1 = go.Bar(
+
+      x= plot_studio_list,
+      y= plot_average_review,
+      name='Average Reviews',
+      marker=dict(
+          color='rgb(190,190,190)', #was 204
+      )
+  )
+
+  data = [trace0, trace1]
+  layout = go.Layout(
+      xaxis=dict(tickangle=-45),
+      barmode='group',
+  )
+
+  fig = go.Figure(data=data, layout=layout)
+  py.plot(fig, filename='angled-text-bar')
+
+get_rotated_barchart_studios()
+
+# # #
+def get_dotplot_director():
+  trace1 = {"x": director_moviereview_list,
+          "y": director_list,
+          "marker": {"color": "pink", "size": 12},
+          "mode": "markers",
+          "name": "Moviereviews",
+          "type": "scatter"
+  }
+
+  trace2 = {"x": director_movielength_list,
+            "y": director_list,
+            "marker": {"color": "blue", "size": 12},
+            "mode": "markers",
+            "name": "MovieLength",
+            "type": "scatter",
+  }
+
+  data = Data([trace1, trace2])
+  layout = {"title": "Director plot",
+            "xaxis": {"title": "Runtime/Reviews", },
+            "yaxis": {"title": "Directors"}}
+
+  fig = Figure(data=data, layout=layout)
+  py.plot(fig, filenmae='basic_dot-plot')
+
+get_dotplot_director()
+
+def get_donutchart_movies():
+  fig = {
+  "data": [
+    {
+      "values": movielength_list,
+      "labels": movie_rating_list,
+      "domain": {"x": [0, .48]},
+      "name": "Movie Length",
+      "hoverinfo":"label+percent+name",
+      "hole": .4,
+      "type": "pie"
+    },
+    {
+      "values": moviereview_list,
+      "labels": movie_rating_list,
+      "text":"Rev",
+      "textposition":"inside",
+      "domain": {"x": [.52, 1]},
+      "name": "Number of Reviews",
+      "hoverinfo":"label+percent+name",
+      "hole": .4,
+      "type": "pie"
+    }],
+  "layout": {
+      "title":"Breakdown of Movie ratings by runtime and reviews",
+      "annotations": [
+          {
+              "font": {
+                  "size": 20
+              },
+              "showarrow": False,
+              "text": "Runtime",
+              "x": 0.20,
+              "y": 0.5
+          },
+          {
+              "font": {
+                  "size": 20
+              },
+              "showarrow": False,
+              "text": "Reviews",
+              "x": 0.8,
+              "y": 0.5
+          }
+      ]
+    }
+  }
+  py.plot(fig, filename='donut')
+
+get_donutchart_movies()
+
+
+
+
+
+
+
+
+
+print("<-------------------------------------------INTERACTIVE PROMPT------------------------------------->")
+
+
+
+
+
+
+
+
+
+
+if __name__=="__main__":
+  init_db(DBNAME)
+  insert_csv_data(csv_list)
+  insert_json_file(js)
+  interactive_prompt()
