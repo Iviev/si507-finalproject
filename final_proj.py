@@ -56,7 +56,6 @@ class Movie():
         self.director = director
         self.release_year = release_year
         self.runtime = runtime
-        # self.box_office = box_office
         self.studio = studio
         self.reviews = reviews
 
@@ -102,7 +101,7 @@ get_topgenre_urls()
 
 
 def get_movies(genre):
-    global movie_list
+    # global movie_list
     beg_url = 'https://www.rottentomatoes.com/top/bestofrt/top_100_'
     end_url = "_movies/"
     url = beg_url + genre + end_url
@@ -169,8 +168,8 @@ def get_movies(genre):
 
     return movie_list
 
-get_movies("horror")
-def create_csv():
+# get_movies("horror")
+def create_csv(movie_list):
 
     file_name = open("Movies.csv", "w")
     file_name.write("Movie, MovieId, Genre, Rating, MovieLength, Director, ReleaseYear, Studio, Reviews\n")
@@ -189,7 +188,7 @@ def create_csv():
       file_name.write("{}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(Movie,MovieId,Genre,Rating,MovieLength,Director,ReleaseYear,Studio,Reviews))
     file_name.close()
 
-create_csv()
+# create_csv(get_movies(genre))
 
 
 def init_db(db_name):
@@ -244,12 +243,17 @@ def init_db(db_name):
   conn.commit()
   conn.close()
 
-init_db(DBNAME)
+# init_db(DBNAME)
 
 def insert_csv_data(csv_file):
     conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
-    for row in csv_file:
+    movies_csv= open(csv_file)
+    csvReader = csv.reader(movies_csv)
+    csv_list = list(csvReader)
+    del(csv_list[0])
+    movies_csv.close()
+    for row in csv_list:
         insertion = (row[0], row[6], row[8])
         statement = 'INSERT INTO "Critics" '
         statement += 'VALUES (NULL, ?, ?, NULL, ?) '
@@ -259,9 +263,15 @@ def insert_csv_data(csv_file):
 def insert_csv_data2(csv_file):
     conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
+    movies_csv= open(csv_file)
+    csvReader = csv.reader(movies_csv)
+    csv_list = list(csvReader)
+    del(csv_list[0])
+    movies_csv.close()
     my_dict = {}
     id_ = 1001
-    for row in csv_file:
+
+    for row in csv_list:
         insertion = (row[1], row[0], row[2], row[3], row[4], row[5], row[7])
         statement = 'INSERT INTO "Movies" '
         statement += 'VALUES (?, ?, ?, ?, ?, ?, ?) '
@@ -281,17 +291,17 @@ def insert_csv_data2(csv_file):
 # init_db(DBNAME)
 
 #
-movies_csv= open(MOVIESCSV)
-csvReader = csv.reader(movies_csv)
-csv_list = list(csvReader)
-del(csv_list[0])
-insert_csv_data(csv_list)
-
-movies_csv= open(MOVIESCSV)
-csvReader = csv.reader(movies_csv)
-csv_list = list(csvReader)
-del(csv_list[0])
-insert_csv_data2(csv_list)
+# movies_csv= open(MOVIESCSV)
+# csvReader = csv.reader(movies_csv)
+# csv_list = list(csvReader)
+# del(csv_list[0])
+# insert_csv_data(csv_list)
+#
+# movies_csv= open(MOVIESCSV)
+# csvReader = csv.reader(movies_csv)
+# csv_list = list(csvReader)
+# del(csv_list[0])
+# insert_csv_data2(csv_list)
 
 
 print("----------TABLES HERE----------")
@@ -333,7 +343,7 @@ def movies_command(command):
       release_year = split[1]
       join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
       year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
-      # print(release_year)
+  
 
     if "ratings" in words: #take review out
       statement1 = 'SELECT Movies.MovieName, Movies.Rating, COUNT(*), c.ReleaseYear, Movies.MovieLength, c.NumberReviews '
@@ -408,11 +418,9 @@ def genres_command(command):
         order_by = 'ORDER BY AVG(c.NumberReviews) '
 
     if "ratings" in words:
-      print("hi there")
       split = words.split("=")
       rating_movie= split[1].upper()
       ratings = 'WHERE Movies.Rating = " ' + rating_movie + '" '
-      print(ratings)
       order_by = 'ORDER BY c.NumberReviews ' #this line only original
       limit = ''
 
@@ -440,8 +448,8 @@ def genres_command(command):
     plot_genre_reviews.append(genre_review_row)
     beautiful_table.add_row(row)
   print(beautiful_table)
-  # print(plot_genre_list)
-  # print(plot_genre_reviews)
+  result = cur.execute(statement1 + statement2 + join_statement1 + genre + year + ratings + group_by + order_by + top_bottom + limit)
+  return result.fetchall()
 
 def studio_command(command):
   global plot_studio_list
@@ -514,6 +522,8 @@ def studio_command(command):
     plot_average_review.append(average_review_row)
     beautiful_table.add_row(row)
   print(beautiful_table)
+  result = cur.execute(statement1 + statement2 + join_statement1 + genre + year + ratings + group_by + having + order_by + top_bottom + limit)
+  return result.fetchall()
 
 def compare_command(command):
   global director_list
@@ -571,6 +581,8 @@ def compare_command(command):
     director_movielength_list.append(director_movielength_row)
     director_moviereview_list.append(director_moviereview_row)
   print(beautiful_table)
+  result = cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + group_by + order_by + top_bottom + limit)
+  return result.fetchall()
 
 
 
@@ -586,47 +598,51 @@ def compare_command(command):
 
 
 
-def process_command(command):
+def process_command(command, debug=False):
+  # global visualize
+
   conn = sqlite3.connect(DBNAME)
   cur = conn.cursor()
   if command.split()[0] == "movies":
+    print("hello")
     movies_command(command)
-    visualize = input("Do you want to visualize a breakdown of Movies Studios/Ratings by Runtime and number of reviews: ")
-    if visualize == "yes":
-      get_donutchart_movies()
-    else:
-      pass
-
+    if not debug:
+      visualize = input("Do you want to visualize a breakdown of Movies Studios/Ratings by Runtime and number of reviews: ")
+      if visualize == "yes":
+        get_donutchart_movies()
+      else:
+        pass
+      # return movies_command(command)
 
   if command.split()[0] == "genres":
+    # print("heyyy")
+    # plot_genre_list = []
+    # plot_genre_reviews = []
     genres_command(command)
-    visualize = input("Do you want to visualize a breakdown of Movies Genres by number of reviews: ")
-    if visualize == "yes":
-      get_pie_chart_genre ()
-    else:
-      pass
+    if not debug:
+      visualize = input("Do you want to visualize a breakdown of Movies Genres by number of reviews: ")
+      if visualize == "yes":
+        get_pie_chart_genre()
+      else:
+        pass
 
   if command.split()[0] == "studios":
     studio_command(command)
     visualize = input("Do you want to visualize a breakdown of Movies Studios Average reviews and number of reviews: ")
-    if visualize == "yes":
-      get_rotated_barchart_studios()
-    else:
-      pass
+    if not debug:
+      if visualize == "yes":
+        get_rotated_barchart_studios()
+      else:
+        pass
 
   if command.split()[0] == "compare":
     compare_command(command)
     visualize = input("Do you want to visualize a breakdown of Directors based on reviews and length of the movies they directed: ")
-    if visualize == "yes":
-      get_dotplot_director()
-    else:
-      pass
-
-# Questions to ASK:
-# WHY IS MY MOVIES COMMAND NOT PRINITNG OUT TOP 30
-# HOW TO INCORPORATE INTERACTIVE PROMPT
-
-
+    if not debug:
+      if visualize == "yes":
+        get_dotplot_director()
+      else:
+        pass
 
 
 print("-----------------------------------PLOTLY FUNCTIONS---------------------------------------")
@@ -638,9 +654,6 @@ def get_pie_chart_genre():
   trace = go.Pie(labels=labels, values=values)
 
   py.plot([trace], filename='Pie_Chart_genre')
-
-
-# get_pie_chart_genre()
 
 def get_rotated_barchart_studios():
 
@@ -671,9 +684,6 @@ def get_rotated_barchart_studios():
   fig = go.Figure(data=data, layout=layout)
   py.plot(fig, filename='angled-text-bar')
 
-# get_rotated_barchart_studios()
-
-# # #
 def get_dotplot_director():
   trace1 = {"x": director_moviereview_list,
           "y": director_list,
@@ -698,8 +708,6 @@ def get_dotplot_director():
 
   fig = Figure(data=data, layout=layout)
   py.plot(fig, filenmae='basic_dot-plot')
-
-# get_dotplot_director()
 
 def get_donutchart_movies():
   fig = {
@@ -750,10 +758,6 @@ def get_donutchart_movies():
   }
   py.plot(fig, filename='donut')
 
-# get_donutchart_movies()
-
-
-
 #
 # print("<-------------------------------------------INTERACTIVE PROMPT------------------------------------->")
 #
@@ -778,7 +782,9 @@ def interactive_prompt():
       print("Command not found: " + response)
       continue
     if response in commands_list:
-      get_movies(response)
+      create_csv(get_movies(response))
+      insert_csv_data(MOVIESCSV)
+      insert_csv_data2(MOVIESCSV)
       response2 = ''
       while response2 != 'exit':
         response2 = input('Enter a command: ')
@@ -792,6 +798,11 @@ def interactive_prompt():
           print("Command not found: " + response2)
           continue
         process_command(response2)
+
+
+
+
+
 
 
 
@@ -815,6 +826,4 @@ def interactive_prompt():
 if __name__=="__main__":
   get_topgenre_urls()
   init_db(DBNAME)
-  insert_csv_data(csv_list)
-  insert_csv_data2(csv_list)
   interactive_prompt()
