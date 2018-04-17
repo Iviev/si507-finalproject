@@ -343,7 +343,7 @@ def movies_command(command):
       release_year = split[1]
       join_statement1 = 'JOIN Critics as c ON Movies.Id = c.MovieId '
       year = 'WHERE c.ReleaseYear = " ' + release_year + '" '
-  
+
 
     if "ratings" in words: #take review out
       statement1 = 'SELECT Movies.MovieName, Movies.Rating, COUNT(*), c.ReleaseYear, Movies.MovieLength, c.NumberReviews '
@@ -604,7 +604,6 @@ def process_command(command, debug=False):
   conn = sqlite3.connect(DBNAME)
   cur = conn.cursor()
   if command.split()[0] == "movies":
-    print("hello")
     movies_command(command)
     if not debug:
       visualize = input("Do you want to visualize a breakdown of Movies Studios/Ratings by Runtime and number of reviews: ")
@@ -615,9 +614,6 @@ def process_command(command, debug=False):
       # return movies_command(command)
 
   if command.split()[0] == "genres":
-    # print("heyyy")
-    # plot_genre_list = []
-    # plot_genre_reviews = []
     genres_command(command)
     if not debug:
       visualize = input("Do you want to visualize a breakdown of Movies Genres by number of reviews: ")
@@ -763,7 +759,7 @@ def get_donutchart_movies():
 #
 commands_list = ["horror", "drama", "romance", "documentary", "television"]
 commands_list2 = ["movies", "genres", "studios", "compare"]
-commands_list3 = ["year", "filming_studio", "ratings", "top", "bottom", "category", "number_reviews", "directors"] #--original
+commands_list3 = ["year", "filming_studio", "ratings", "genre", "top", "bottom", "category", "number_reviews", "directors"] #--original
 
 # # Part 3: Implement interactive prompt. We've started for you!
 def interactive_prompt():
@@ -793,10 +789,28 @@ def interactive_prompt():
         if response2 == '':
           continue
         split_response2 = response2.split()
-        print(split_response2)
         if split_response2[0] not in commands_list2:
           print("Command not found: " + response2)
           continue
+
+        if len(split_response2) >= 2:
+            bad_command = False
+            for i in split_response2[1:]:
+              if "=" in i:
+                i = i.split("=")[0]
+                if i not in commands_list3:
+                  print("Command not found: " + response2)
+                  bad_command = True
+                  break
+              else:
+                if i not in commands_list3:
+                  print("not a valid command")
+                  bad_command = True
+                  break
+
+            if bad_command:
+                continue
+
         process_command(response2)
 
 
