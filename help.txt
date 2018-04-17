@@ -1,0 +1,66 @@
+
+Search categories available: horror, romance, drama, documentary, television (lower case)
+Sample commands:
+ -movies year=2012 top=10
+ -genres number_reviews
+ -studios rating=PG top=5
+ -compare directors top=10
+Commands available:
+
+Movies
+	Description: Lists Movies, according the specified parameters.
+
+	Options:
+		* filming_studio|year|ratings|[default: none]
+		Description:
+			-	filming_studio: Limits the list by the me of studio specified by user
+			- year: Specifies a year within which to limit the results
+			-ratings: Specifies whether to limit by the rating of the movie(PG)
+
+		* top=<limit>|bottom=<limit> [default: top=10]
+		Description: Specifies whether to list the top <limit> matches or the
+		bottom <limit> matches.
+
+Genres
+	Description: Lists Movies and genres according to the specified parameters.
+
+	Options:
+		* category=<Genre>|number_reviews|rating<PG-13>[default: none]
+		Description:
+			- category: Limits the result to one genre as specified by user.
+			- number_reviews: Specifies the Numbers of reviews for all genres and order by
+				average number of reviews for each genre.
+			- ratings: Limits the results to the rating specified by user (PG,PG-13,R)
+
+		* top=<limit>|bottom=<limit> [default: top=10]
+		Description: Specifies whether to list the top <limit> matches or the
+		bottom <limit> matches.
+
+Studios
+	Description: Lists movie studios according to specified parameters.
+
+	Options:
+		* year|ratings|genre [default:none]
+		Description:
+			- year: Specifies a year within which to limit the results.
+			- ratings: Limits the results to the rating specified by user (PG,PG-13,R)
+			- genre: Limits the results to the genre specified by user (Classics)
+
+		* number_reviews [default:none]
+		Description: Specifies whether to sort and order by the number of reviews each studio received.
+
+		* top=<limit>|bottom=<limit> [default: top=10]
+		Description: Specifies whether to list the top <limit> matches or the
+		bottom <limit> matches.
+
+Compare
+	Description: Lists movie directors according to specified parameters.
+
+	Options:
+		* directors [default:directors]
+		Description: Specifies whether to select movies based on directors
+		and order by the release year of the movie
+
+		* top=<limit>|bottom=<limit> [default: top=10]
+		Description: Specifies whether to list the top <limit> matches or the
+		bottom <limit> matches.

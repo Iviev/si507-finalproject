@@ -85,17 +85,15 @@ def get_topgenre_urls():
     topmovies_content = topmovies_soup.find('ul', {'class': 'genrelist'}) #undo to get to container masonry blah blah
     top_genre = topmovies_content.find_all('a', {'class': 'articleLink unstyled'})
     top_genrelinks = []
-    # print(top_genrelinks)
     for links in top_genre:
-        # print(links['href'])
         top_genrelinks.append(links['href'])
     for items in top_genrelinks[:10]:
         baseurl_genre = baseurl[:-1] + items
-        # print(baseurl_genre)
+
 
     return baseurl_genre
 
-get_topgenre_urls()
+# get_topgenre_urls()
 
 
 
@@ -105,17 +103,13 @@ def get_movies(genre):
     beg_url = 'https://www.rottentomatoes.com/top/bestofrt/top_100_'
     end_url = "_movies/"
     url = beg_url + genre + end_url
-    # print(url)
     movie_list=[]
     eachgenre_text = make_request_using_cache(url)
     genre_soup = BeautifulSoup(eachgenre_text, 'html.parser')
     list_movies = genre_soup.find('table', {'class': 'table'})
-    # print(list_movies)
     list_movies_url = list_movies.find_all('tr')
-    # movies_list = []
     for item in list_movies_url[1:]: #---- remove the index
         num_rev = item.find(class_= "right hidden-xs").text #----- number of rev
-        # print(num_rev)
         item_link = item.find("a")
         if item_link:
             names = item.find('a').text
@@ -129,8 +123,7 @@ def get_movies(genre):
             movie_url = baseurl[:-1] + movie_link
             movie_info_text = make_request_using_cache(movie_url)
             movie_info = BeautifulSoup(movie_info_text, "html.parser")
-            # movie = movie_info.find('div', {'id': 'mainColumn'}) ---- commented this out cause of nosefreatu
-            # movies_name = movie.find('h1').text.strip()
+
 
             for ultag in movie_info.find_all('ul', {'class': 'content-meta info'}):
                 for litag in ultag.find_all("li"):
@@ -168,7 +161,6 @@ def get_movies(genre):
 
     return movie_list
 
-# get_movies("horror")
 def create_csv(movie_list):
 
     file_name = open("Movies.csv", "w")
@@ -188,7 +180,6 @@ def create_csv(movie_list):
       file_name.write("{}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(Movie,MovieId,Genre,Rating,MovieLength,Director,ReleaseYear,Studio,Reviews))
     file_name.close()
 
-# create_csv(get_movies(genre))
 
 
 def init_db(db_name):
@@ -243,7 +234,6 @@ def init_db(db_name):
   conn.commit()
   conn.close()
 
-# init_db(DBNAME)
 
 def insert_csv_data(csv_file):
     conn = sqlite3.connect(DBNAME)
@@ -259,7 +249,7 @@ def insert_csv_data(csv_file):
         statement += 'VALUES (NULL, ?, ?, NULL, ?) '
         cur.execute(statement, insertion)
     conn.commit()
-# #
+
 def insert_csv_data2(csv_file):
     conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
@@ -288,23 +278,8 @@ def insert_csv_data2(csv_file):
         pass
     conn.commit()
 
-# init_db(DBNAME)
 
-#
-# movies_csv= open(MOVIESCSV)
-# csvReader = csv.reader(movies_csv)
-# csv_list = list(csvReader)
-# del(csv_list[0])
-# insert_csv_data(csv_list)
-#
-# movies_csv= open(MOVIESCSV)
-# csvReader = csv.reader(movies_csv)
-# csv_list = list(csvReader)
-# del(csv_list[0])
-# insert_csv_data2(csv_list)
-
-
-print("----------TABLES HERE----------")
+# print("----------TABLES HERE----------")
 def movies_command(command):
   global result_value
   global director_list
@@ -371,7 +346,6 @@ def movies_command(command):
   for row in cur:
       beautiful_table.add_row(row)
       director_row = row[2]
-      # director_list.append(director_row)
       movielength_row = row[4]
       moviereview_row = row[5]
       movielength_list.append(movielength_row)
@@ -553,11 +527,8 @@ def compare_command(command):
       order_by = 'ORDER BY c.ReleaseYear '
 
     if "top" in words:
-      print("yh") #not priting out 30
       split = words.split("=")
-      print(split)
       limit_no = split[1]
-      print(limit_no)
       top_bottom = 'DESC '
       limit = 'LIMIT "' + limit_no + '" '
 
@@ -583,19 +554,6 @@ def compare_command(command):
   print(beautiful_table)
   result = cur.execute(statement1 + statement2 + join_statement1 + join_statement2 + filming_studio + year + group_by + order_by + top_bottom + limit)
   return result.fetchall()
-
-
-
-#
-# movies_command("movies top=20") #plan to visualize all movies according to movielenght via scatter with a color dimension. using movies top 10, also bubble chart in movies
-# genres_command("genres number_reviews top=20") #creating lists from here to visualize genres and their average number of reviews in a pie chart using "genres number_reviews top=5"
-# studio_command("studio number_reviews top=20") #rotated barr chart labels(x axis has each studio, then plots count and average on y axis using"studio number_reviews")
-# compare_command("compare directors top=20")
-#basic plot dot movie directors
-#label line with annotations
-# studio_command("studios year=2012 ")
-# genres_command("genres ratings=PG-13 top=5")
-
 
 
 def process_command(command, debug=False):
@@ -641,7 +599,7 @@ def process_command(command, debug=False):
         pass
 
 
-print("-----------------------------------PLOTLY FUNCTIONS---------------------------------------")
+# print("-----------------------------------PLOTLY FUNCTIONS---------------------------------------")
 
 def get_pie_chart_genre():
   labels = plot_genre_list
@@ -754,24 +712,27 @@ def get_donutchart_movies():
   }
   py.plot(fig, filename='donut')
 
-#
-# print("<-------------------------------------------INTERACTIVE PROMPT------------------------------------->")
-#
+
+def load_help_text():
+  with open('help.txt') as f:
+    return f.read()
+
+
 commands_list = ["horror", "drama", "romance", "documentary", "television"]
 commands_list2 = ["movies", "genres", "studios", "compare"]
 commands_list3 = ["year", "filming_studio", "ratings", "genre", "top", "bottom", "category", "number_reviews", "directors"] #--original
 
 # # Part 3: Implement interactive prompt. We've started for you!
 def interactive_prompt():
-  # help_text = load_help_text()
+  help_text = load_help_text()
   response = ''
   while response != 'exit':
     response = input('Enter search category: ')
     if response == "exit":
         break
-    # if response == 'help':
-    #     print(help_text)
-    #     continue
+    if response == 'help':
+        print(help_text)
+        continue
     if response == '':
         continue
     if response not in commands_list:
@@ -804,7 +765,7 @@ def interactive_prompt():
                   break
               else:
                 if i not in commands_list3:
-                  print("not a valid command")
+                  print("Not a valid command: " + response2)
                   bad_command = True
                   break
 
@@ -815,26 +776,6 @@ def interactive_prompt():
 
 
 
-
-
-
-
-
-#         if len(split_response2) >= 2:   -----bottom half to account for errors past the first element
-#           bad_command = False
-#           for i in range(1, len(split_response2)):
-#             if split_response2[i] not in commands_list3:
-#               print(split_response2[i]) #cheking split
-#               print("Command not found: " + response2)
-#               bad_command = True
-#               break
-#           if bad_command:
-#               continue
-#         process_command(response2)
-#
-#
-#
-#
 
 
 if __name__=="__main__":
