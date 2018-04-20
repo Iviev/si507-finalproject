@@ -93,7 +93,6 @@ def get_topgenre_urls():
 
     return baseurl_genre
 
-# get_topgenre_urls()
 
 
 
@@ -557,7 +556,6 @@ def compare_command(command):
 
 
 def process_command(command, debug=False):
-  # global visualize
 
   conn = sqlite3.connect(DBNAME)
   cur = conn.cursor()

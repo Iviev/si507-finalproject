@@ -47,7 +47,7 @@ Studios
 			- genre: Limits the results to the genre specified by user (Classics)
 
 		* number_reviews [default:none]
-		Description: Specifies whether to sort and order by the number of reviews each studio received.
+		Description: Specifies whether to sort and order by the number of reviews each studio received and the number of movies they released.
 
 		* top=<limit>|bottom=<limit> [default: top=10]
 		Description: Specifies whether to list the top <limit> matches or the
